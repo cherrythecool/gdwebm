@@ -2,3 +2,7 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp.git
 	branch = 4.3
+[submodule "src/libwebm"]
+	path = src/libwebm
+	url = https://chromium.googlesource.com/webm/libwebm
+	branch = libwebm-1.0.0.32

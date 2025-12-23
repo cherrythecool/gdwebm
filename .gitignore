@@ -60,3 +60,8 @@ compile_commands.json
 # Cmake
 cmake-build*
 CMakeUserPresets.json
+
+# Repo-specific
+bin/*/lib*
+.cache/
+__pycache__/
