@@ -65,3 +65,4 @@ CMakeUserPresets.json
 bin/*/lib*
 .cache/
 __pycache__/
+src/**/build/

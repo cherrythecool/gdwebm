@@ -2,6 +2,7 @@
 
 entry_symbol = "example_library_init"
 compatibility_minimum = "4.1"
+reloadable = true
 
 [libraries]
 ; Relative paths ensure that our GDExtension can be placed anywhere in the project directory.
@@ -54,3 +55,6 @@ web.wasm32.single.debug = "./web/libEXTENSION-NAME.web.template_debug.wasm32.not
 web.wasm32.double.debug = "./web/libEXTENSION-NAME.web.template_debug.wasm32.double.nothreads.wasm"
 web.wasm32.single.release = "./web/libEXTENSION-NAME.web.template_release.wasm32.nothreads.wasm"
 web.wasm32.double.release = "./web/libEXTENSION-NAME.web.template_release.wasm32.double.nothreads.wasm"
+
+[icons]
+VideoStreamWebM = "./video_stream_webm.svg"
