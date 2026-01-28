@@ -36,9 +36,10 @@ Error VideoStreamPlaybackWebM::load_from_file(Ref<FileAccess> p_file) {
 		return ERR_PARSE_ERROR;
 	}
 
+	GodotWebMVideoTrack current_track = file_info.videoTracks[video_track];
 	current_texture = ImageTexture::create_from_image(Image::create(
-		file_info.videoWidth,
-		file_info.videoHeight,
+		current_track.width,
+		current_track.height,
 		false,
 		Image::FORMAT_RGBA8
 	));
@@ -100,8 +101,9 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 	arr.push_back(p_delta);
 	current_time += p_delta;
 
+	GodotWebMVideoTrack current_track = file_info.videoTracks[video_track];
 	float amount = current_time / _get_length();
-	Ref<Image> new_frame = Image::create(file_info.videoWidth, file_info.videoHeight, false, Image::FORMAT_RGBA8);
+	Ref<Image> new_frame = Image::create(current_track.width, current_track.height, false, Image::FORMAT_RGBA8);
 	new_frame->fill(Color {
 		amount, amount, amount, 1.0f
 	});
