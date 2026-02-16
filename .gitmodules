@@ -6,3 +6,6 @@
 	path = src/libwebm
 	url = https://chromium.googlesource.com/webm/libwebm
 	branch = libwebm-1.0.0.32
+[submodule "src/libopus"]
+	path = src/libopus
+	url = https://github.com/xiph/opus.git

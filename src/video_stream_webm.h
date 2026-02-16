@@ -24,6 +24,16 @@ private:
 	double current_time = 0.0;
 	Ref<ImageTexture> current_texture;
 
+	int64_t last_audio_index = -1;
+
+	int32_t get_audio_track() const;
+	uint64_t get_audio_track_count() const;
+	bool has_audio_track() const;
+
+	int32_t get_video_track() const;
+	uint64_t get_video_track_count() const;
+	bool has_video_track() const;
+
 protected:
 	static void _bind_methods() {};
 

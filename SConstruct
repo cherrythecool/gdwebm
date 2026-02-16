@@ -36,9 +36,28 @@ Run the following command to download godot-cpp:
 
 env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
 
-env.Append(CPPPATH=["src/", "src/libwebm/", "src/libwebm/webm_parser/include/"])
-env.Append(LIBPATH=["src/libwebm/build/"])
-env.Append(LIBS=["webm"])
+env.Append(
+    CPPPATH=[
+        "src/",
+        "src/libwebm/",
+        "src/libwebm/webm_parser/include/",
+        "src/libopus/include/",
+    ]
+)
+
+env.Append(
+    LIBPATH=[
+        "src/libwebm/build/",
+        "src/libopus/build/",
+    ]
+)
+
+env.Append(
+    LIBS=[
+        "webm",
+        "opus",
+    ]
+)
 
 sources = Glob("src/*.cpp")
 

@@ -1,11 +1,13 @@
 #pragma once
 
 #include "godot_cpp/templates/vector.hpp"
-#include "godot_cpp/variant/typed_array.hpp"
+#include "godot_cpp/templates/vmap.hpp"
 
+#include "godot_cpp/variant/packed_byte_array.hpp"
+#include "godot_cpp/variant/packed_float32_array.hpp"
+#include "opus.h"
 #include "webm/callback.h"
 #include <cstdint>
-#include <vector>
 
 enum GodotWebMSupportedCodec {
 	GDWEBM_UNSUPPORTED_CODEC = 0,
@@ -18,24 +20,31 @@ enum GodotWebMSupportedCodec {
 	GDWEBM_SUPPORTED_CODEC_A_VORBIS = 0x201,
 };
 
-struct GodotWebMAudioTrack {
-	GodotWebMSupportedCodec codec = GDWEBM_UNSUPPORTED_CODEC;
-	uint64_t channels = 0;
-	uint64_t sampleRate = 0;
+struct GodotWebMFrame {
+	godot::PackedByteArray data;
+	uint64_t timecode;
 };
 
-struct GodotWebMVideoTrack {
+struct GodotWebMOpusData {
+	OpusDecoder* decoder;
+	godot::PackedFloat32Array pcm;
+	size_t channels;
+	size_t sample_rate;
+};
+
+// TODO: switch to RefCounted class to manage the memory of `data` better
+struct GodotWebMTrack {
 	GodotWebMSupportedCodec codec = GDWEBM_UNSUPPORTED_CODEC;
-	uint64_t width = 0;
-	uint64_t height = 0;
+	webm::TrackEntry entry;
+	godot::Vector<GodotWebMFrame> frames;
+	void* data;
 };
 
 struct GodotWebMFileInfo {
 	uint64_t durationTimecode = 0;
 	uint64_t timecodeScale = 1000000;
 
-	godot::Vector<GodotWebMVideoTrack> videoTracks;
-	godot::Vector<GodotWebMAudioTrack> audioTracks;
+	godot::VMap<int64_t, GodotWebMTrack> tracks;
 
 	public:
 		double getScaledSeconds(const uint64_t timecode) const {
@@ -46,13 +55,24 @@ struct GodotWebMFileInfo {
 using namespace webm;
 
 class GodotWebMCallback : public webm::Callback {
+	private:
+		uint64_t current_track = 0;
+		uint64_t current_timecode_base = 0;
+		uint64_t current_timecode = 0;
 	public:
 		GodotWebMFileInfo* file_info;
 
 		GodotWebMCallback(GodotWebMFileInfo* p_file_info);
 		virtual webm::Status OnInfo(const webm::ElementMetadata &metadata, const webm::Info &info) override;
 		virtual Status OnTrackEntry(const ElementMetadata& metadata,
-                              const TrackEntry& track_entry) override;
+        						const TrackEntry& track_entry) override;
 		virtual Status OnClusterBegin(const ElementMetadata& metadata,
                                 const Cluster& cluster, Action* action) override;
+		virtual Status OnFrame(const FrameMetadata& metadata, Reader* reader,
+        						std::uint64_t* bytes_remaining) override;
+		virtual Status OnBlockBegin(const ElementMetadata& metadata,
+								const Block& block, Action* action) override;
+		virtual Status OnSimpleBlockBegin(const ElementMetadata& metadata,
+		                        const SimpleBlock& simple_block,
+		                        Action* action) override;
 };
