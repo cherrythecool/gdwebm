@@ -1,3 +1,4 @@
+# karsten is cool
 # godot-cpp template
 This repository serves as a quickstart template for GDExtension development with Godot 4.0+.
 
