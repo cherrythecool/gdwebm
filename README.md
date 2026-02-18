@@ -1,56 +1,46 @@
-# godot-cpp template
-This repository serves as a quickstart template for GDExtension development with Godot 4.0+.
+# gdwebm
 
-## Contents
-* Preconfigured source files for C++ development of the GDExtension ([src/](./src/))
-* An empty Godot project in [demo/](./demo), to test the GDExtension
-* godot-cpp as a submodule (`godot-cpp/`)
-* GitHub Issues template ([.github/ISSUE_TEMPLATE.yml](./.github/ISSUE_TEMPLATE.yml))
-* GitHub CI/CD workflows to publish your library packages when creating a release ([.github/workflows/builds.yml](./.github/workflows/builds.yml))
-* An SConstruct file with various functions, such as boilerplate for [Adding documentation](https://docs.godotengine.org/en/stable/tutorials/scripting/cpp/gdextension_docs_system.html)
+A **Godot 4.0+** GDExtension for playing **WebM** media files.
 
-## Usage - Template
+## Purpose
 
-To use this template, log in to GitHub and click the green "Use this template" button at the top of the repository page. This will let you create a copy of this repository with a clean git history.
+The goal of `gdwebm` is to provide native support for the WebM container and its associated codecs (VP8, VP9, AV1, Opus, Vorbis) directly within Godot Engine/Editor. This allows developers to use high-quality, open-format video and audio in their projects without relying on the built-in Ogg Theora support or external ffmpeg dependencies.
 
-To get started with your new GDExtension, do the following:
+## Usage
 
-* clone your repository to your local computer
-* initialize the godot-cpp git submodule via `git submodule update --init`
-* change the name of the compiled library file inside the [SConstruct](./SConstruct) file by modifying the `libname` string.
-  * change the paths of the to be loaded library name inside the [demo/bin/example.gdextension](./demo/bin/example.gdextension) file, by replacing `EXTENSION-NAME` with the name you chose for `libname`.
-* change the `entry_symbol` string inside [demo/bin/example.gdextension](./demo/bin/example.gdextension) file.
-  * rename the `example_library_init` function in [src/register_types.cpp](./src/register_types.cpp) to the same name you chose for `entry_symbol`.
-* change the name of the `demo/bin/example.gdextension` file
+> [!WARNING]
+> This extension is currently in **ALPHA** and is considered **UNSTABLE**.
+> Use with caution in production projects.
 
-Now, you can build the project with the following command:
+To use this extension:
+1.  Clone this repository.
+2.  Build the extension using `scons` (see generic GDExtension build instructions).
+3.  Add the `VideoStreamWebM` resource to your Godot project.
 
-```shell
-scons
-```
+## Supported Features
 
-If the build command worked, you can test it with the [demo](./demo) project. Import it into Godot, open it, and launch the main scene. You should see it print the following line in the console:
+Currently, the extension supports parsing the WebM container and decoding the following streams:
 
-```
-Type: 24
-```
+*   **Container / Parsing**:
+    *   [x] `.webm` / `.mkv` parsing (via `libwebm`)
+*   **Audio**:
+    *   [x] Opus (`A_OPUS`)
+*   **Video**:
+    *   [ ] *None (Placeholder visualization only)*
 
-### Configuring an IDE
-You can develop your own extension with any text editor and by invoking scons on the command line, but if you want to work with an IDE (Integrated Development Environment), you can use a compilation database file called `compile_commands.json`. Most IDEs should automatically identify this file, and self-configure appropriately.
-To generate the database file, you can run one of the following commands in the project root directory:
-```shell
-# Generate compile_commands.json while compiling
-scons compiledb=yes
+## Future Features
 
-# Generate compile_commands.json without compiling
-scons compiledb=yes compile_commands.json
-```
+We plan to implement full support for all standard WebM codecs:
 
-## Usage - Actions
+*   **Video**:
+    *   [ ] VP8 (`V_VP8`)
+    *   [ ] VP9 (`V_VP9`)
+    *   [ ] AV1 (`V_AV1`)
+*   **Audio**:
+    *   [ ] Vorbis (`A_VORBIS`)
 
-This repository comes with continuous integration (CI) through a GitHub action that tests building the GDExtension.
-It triggers automatically for each pushed change. You can find and edit it in [builds.yml](.github/workflows/ci.yml).
+## Credits
 
-There is also a workflow ([make_build.yml](.github/workflows/make_build.yml)) that builds the GDExtension for all supported platforms that you can use to create releases.
-You can trigger this workflow manually from the `Actions` tab on GitHub.
-After it is complete, you can find the file `godot-cpp-template.zip` in the `Artifacts` section of the workflow run.
+*   **godot-cpp-template**: @godotengine
+*   **libwebm**: WebM Project
+*   **libopus**: Xiph.Org Foundation
