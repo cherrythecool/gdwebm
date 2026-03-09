@@ -3,10 +3,10 @@
 #include "video_stream_webm.h"
 
 Variant ResourceFormatLoaderWebM::_load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const {
-    Ref<VideoStreamWebM> stream;
-    stream.instantiate();
-    stream->set_file(path);
-    return stream;
+	Ref<VideoStreamWebM> stream;
+	stream.instantiate();
+	stream->set_file(path);
+	return stream;
 }
 
 PackedStringArray ResourceFormatLoaderWebM::_get_recognized_extensions() const {

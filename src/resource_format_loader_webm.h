@@ -1,7 +1,7 @@
 #pragma once
 
-#include <godot_cpp/classes/wrapped.hpp>
 #include <godot_cpp/classes/resource_format_loader.hpp>
+#include <godot_cpp/classes/wrapped.hpp>
 
 using namespace godot;
 
