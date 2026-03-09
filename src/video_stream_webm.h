@@ -10,6 +10,8 @@
 #include <godot_cpp/classes/wrapped.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 
+#include "dav1d/dav1d.h"
+
 using namespace godot;
 
 class VideoStreamPlaybackWebM : public VideoStreamPlayback {
@@ -22,9 +24,12 @@ private:
 	bool is_playing = false;
 	bool is_paused = false;
 	double current_time = 0.0;
+	Ref<Image> current_image;
 	Ref<ImageTexture> current_texture;
 
 	int64_t last_audio_index = -1;
+	int64_t last_video_index = -1;
+	int64_t last_sent_index = -1;
 
 	int32_t get_audio_track() const;
 	uint64_t get_audio_track_count() const;
@@ -33,6 +38,8 @@ private:
 	int32_t get_video_track() const;
 	uint64_t get_video_track_count() const;
 	bool has_video_track() const;
+
+	void update_texture_to_picture(Dav1dPicture* picture);
 
 protected:
 	static void _bind_methods() {};

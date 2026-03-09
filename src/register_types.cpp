@@ -18,8 +18,8 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 		return;
 	}
 
-	GDREGISTER_CLASS(VideoStreamWebM);
 	GDREGISTER_CLASS(VideoStreamPlaybackWebM);
+	GDREGISTER_CLASS(VideoStreamWebM);
 	GDREGISTER_CLASS(ResourceFormatLoaderWebM);
 	resource_loader_webm.instantiate();
 	ResourceLoader::get_singleton()->add_resource_format_loader(resource_loader_webm);

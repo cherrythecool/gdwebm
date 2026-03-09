@@ -54,3 +54,4 @@ bin/*/lib*
 .cache/
 __pycache__/
 src/**/build/**
+build_**_personal**

@@ -42,6 +42,7 @@ env.Append(
         "src/libwebm/",
         "src/libwebm/webm_parser/include/",
         "src/libopus/include/",
+        "src/libdav1d/include/",
     ]
 )
 
@@ -49,6 +50,7 @@ env.Append(
     LIBPATH=[
         "src/libwebm/build/",
         "src/libopus/build/",
+        "src/libdav1d/build/src/",
     ]
 )
 
@@ -56,6 +58,7 @@ env.Append(
     LIBS=[
         "webm",
         "opus",
+        "dav1d",
     ]
 )
 

@@ -9,3 +9,6 @@
 [submodule "src/libopus"]
 	path = src/libopus
 	url = https://github.com/xiph/opus.git
+[submodule "src/libdav1d"]
+	path = src/libdav1d
+	url = https://code.videolan.org/videolan/dav1d.git

@@ -2,11 +2,13 @@
 
 #include "godot_cpp/templates/vector.hpp"
 #include "godot_cpp/templates/vmap.hpp"
-
 #include "godot_cpp/variant/packed_byte_array.hpp"
 #include "godot_cpp/variant/packed_float32_array.hpp"
-#include "opus.h"
+
 #include "webm/callback.h"
+#include "opus.h"
+#include "dav1d/dav1d.h"
+
 #include <cstdint>
 
 enum GodotWebMSupportedCodec {
@@ -30,6 +32,12 @@ struct GodotWebMOpusData {
 	godot::PackedFloat32Array pcm;
 	size_t channels;
 	size_t sample_rate;
+};
+
+struct GodotWebMAV1Data {
+	Dav1dContext* context;
+	Dav1dData data;
+	Dav1dPicture picture;
 };
 
 // TODO: switch to RefCounted class to manage the memory of `data` better
@@ -59,6 +67,7 @@ class GodotWebMCallback : public webm::Callback {
 		uint64_t current_track = 0;
 		uint64_t current_timecode_base = 0;
 		uint64_t current_timecode = 0;
+		uint64_t current_frame_index = 0;
 	public:
 		GodotWebMFileInfo* file_info;
 
