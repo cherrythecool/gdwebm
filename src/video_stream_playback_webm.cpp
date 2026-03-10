@@ -1,6 +1,5 @@
 #include "video_stream_playback_webm.h"
 
-#include "video_stream_webm.h"
 #include "dav1d/data.h"
 #include "dav1d/headers.h"
 #include "dav1d/picture.h"
@@ -12,8 +11,6 @@
 #include "godot_cpp/classes/texture2d.hpp"
 #include "godot_cpp/classes/video_stream_playback.hpp"
 #include "godot_cpp/core/print_string.hpp"
-#include "godot_cpp/variant/array.hpp"
-#include "godot_cpp/variant/color.hpp"
 #include "godot_cpp/variant/packed_float32_array.hpp"
 #include "godot_cpp/variant/string.hpp"
 #include "godot_webm_callback.h"
@@ -42,9 +39,7 @@ Error VideoStreamPlaybackWebM::load_from_file(Ref<FileAccess> p_file) {
 	webm::WebmParser parser;
 	webm::Status status = parser.Feed(&callback, &reader);
 	if (!status.completed_ok() && status.code != STATUS_FILE_ENDED_CORRECTLY) {
-		Array values;
-		values.push_back(status.code);
-		print_error(String("WebM parsing error! Error: %d") % values);
+		print_error("WebM parsing error! Error: ", status.code);
 		return ERR_PARSE_ERROR;
 	}
 
@@ -70,6 +65,9 @@ void VideoStreamPlaybackWebM::_play() {
 	print_line("Play video");
 	is_playing = true;
 	current_time = 0.0;
+	last_video_index = -1;
+	last_sent_index = -1;
+	last_audio_index = -1;
 }
 
 bool VideoStreamPlaybackWebM::_is_playing() const {
@@ -77,9 +75,7 @@ bool VideoStreamPlaybackWebM::_is_playing() const {
 }
 
 void VideoStreamPlaybackWebM::_set_paused(bool p_paused) {
-	Array arr;
-	arr.push_back(p_paused);
-	print_line(String("Set paused to %s") % arr);
+	print_line("Set paused to ", p_paused);
 	is_paused = p_paused;
 }
 
@@ -96,10 +92,35 @@ double VideoStreamPlaybackWebM::_get_playback_position() const {
 }
 
 void VideoStreamPlaybackWebM::_seek(double p_time) {
-	Array arr;
-	arr.push_back(p_time);
-	print_line(String("Seek to time %f") % arr);
+	print_line("Seek to time ", p_time);
 	current_time = p_time;
+
+	// TODO: make this work goodie
+	if (has_video_track()) {
+		GodotWebMTrack current_track = file_info.tracks[get_video_track()];
+		for (int64_t i = 0; i < (int64_t)current_track.frames.size(); i++) {
+			GodotWebMFrame current_frame = current_track.frames[i];
+			if (current_time >= file_info.getScaledSeconds(current_frame.timecode)) {
+				last_video_index = i;
+				last_sent_index = -1;
+			} else {
+				break;
+			}
+		}
+	}
+
+	if (has_audio_track()) {
+		GodotWebMTrack current_track = file_info.tracks[get_audio_track()];
+		for (int64_t i = 0; i < (int64_t)current_track.frames.size(); i++) {
+			GodotWebMFrame current_frame = current_track.frames[i];
+			if (current_time >= file_info.getScaledSeconds(current_frame.timecode)) {
+				last_audio_index = i;
+			} else {
+				break;
+			}
+		}
+	}
+
 }
 
 void VideoStreamPlaybackWebM::_set_audio_track(int32_t p_idx) {
@@ -118,19 +139,62 @@ void VideoStreamPlaybackWebM::update_texture_to_picture(Dav1dPicture *picture) {
 	switch (picture->p.layout) {
 		case DAV1D_PIXEL_LAYOUT_I420: {
 			if (picture_bits_per_channel == 10) {
-				// TODO!!!
-			}
+				uint8_t *data_y = new uint8_t[picture_width * picture_height];
+				uint16_t *y_ptr = (uint16_t *)picture->data[0];
+				for (size_t y = 0; y < picture_height; y++) {
+					for (size_t x = 0; x < picture_width; x++) {
+						ptrdiff_t stride_samples = picture->stride[0] / sizeof(uint16_t);
+						uint16_t y_value = y_ptr[y * stride_samples + x];
+						data_y[y * picture_width + x] = y_value >> 2;
+					}
+				}
 
-			yuv420_2_rgb8888(
-					current_image->ptrw(),
-					(const uint8_t *)picture->data[0],
-					(const uint8_t *)picture->data[1],
-					(const uint8_t *)picture->data[2],
-					picture_width,
-					picture_height,
-					picture->stride[0],
-					picture->stride[1],
-					picture_width << 2);
+				uint8_t *data_u = new uint8_t[(picture_width / 2) * (picture_height / 2)];
+				uint16_t *u_ptr = (uint16_t *)picture->data[1];
+				for (size_t y = 0; y < picture_height / 2; y++) {
+					for (size_t x = 0; x < picture_width / 2; x++) {
+						ptrdiff_t stride_samples = picture->stride[1] / sizeof(uint16_t);
+						uint16_t u_value = u_ptr[y * stride_samples + x];
+						data_u[y * (picture_width / 2) + x] = u_value >> 2;
+					}
+				}
+
+				uint8_t *data_v = new uint8_t[(picture_width / 2) * (picture_height / 2)];
+				uint16_t *v_ptr = (uint16_t *)picture->data[2];
+				for (size_t y = 0; y < picture_height / 2; y++) {
+					for (size_t x = 0; x < picture_width / 2; x++) {
+						ptrdiff_t stride_samples = picture->stride[1] / sizeof(uint16_t);
+						uint16_t v_value = v_ptr[y * stride_samples + x];
+						data_v[y * (picture_width / 2) + x] = v_value >> 2;
+					}
+				}
+
+				yuv420_2_rgb8888(
+						current_image->ptrw(),
+						(const uint8_t *)data_y,
+						(const uint8_t *)data_u,
+						(const uint8_t *)data_v,
+						picture_width,
+						picture_height,
+						picture_width,
+						picture_width / 2,
+						picture_width << 2);
+
+				delete[] data_y;
+				delete[] data_u;
+				delete[] data_v;
+			} else {
+				yuv420_2_rgb8888(
+						current_image->ptrw(),
+						(const uint8_t *)picture->data[0],
+						(const uint8_t *)picture->data[1],
+						(const uint8_t *)picture->data[2],
+						picture_width,
+						picture_height,
+						picture->stride[0],
+						picture->stride[1],
+						picture_width << 2);
+			}
 		} break;
 		default:
 			break;
@@ -150,31 +214,20 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 		GodotWebMTrack current_track = file_info.tracks[get_video_track()];
 		webm::Video current_video = current_track.entry.video.value();
 
-		bool found = false;
-
 		int64_t next = (last_video_index == -1) ? 0 : (last_video_index + 1);
 		uint64_t frame = (last_video_index == -1) ? 0 : last_video_index;
 		for (int64_t i = next; i < (int64_t)current_track.frames.size(); i++) {
 			GodotWebMFrame current_frame = current_track.frames[i];
 			if (current_time >= file_info.getScaledSeconds(current_frame.timecode)) {
 				frame = (uint64_t)i;
-				found = true;
 			} else {
 				break;
 			}
 		}
 
-		GodotWebMFrame video_frame;
-		if (frame >= 0 && frame <= current_track.frames.size() - 1) {
-			video_frame = current_track.frames[frame];
-		} else {
-			found = false;
-		}
-
 		switch (current_track.codec) {
 			case GDWEBM_SUPPORTED_CODEC_V_AV1: {
 				GodotWebMAV1Data *data = (GodotWebMAV1Data *)current_track.data;
-
 				for (int64_t i = (last_sent_index == -1 ? 0 : last_sent_index + 1); i <= frame; i++) {
 					size_t frame_size = current_track.frames[i].data.size();
 					uint8_t *frame_data = dav1d_data_create(&data->data, frame_size);
@@ -251,6 +304,8 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 			switch (current_track.codec) {
 				case GDWEBM_SUPPORTED_CODEC_A_OPUS: {
 					GodotWebMOpusData *data = (GodotWebMOpusData *)current_track.data;
+					size_t original_pcm_size = data->pcm.size();
+
 					OpusDecoder *decoder = data->decoder;
 					int decoded_frames = 0;
 					for (int64_t i = (last_audio_index == -1 ? 0 : last_audio_index + 1); i <= frame; i++) {
@@ -260,14 +315,14 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 								data->pcm.ptrw() + (decoded_frames * data->channels),
 								(data->pcm.size() / data->channels) - decoded_frames,
 								0);
-						decoded_frames += current_decoded;
-						data->pcm.resize(data->pcm.size() + (decoded_frames * data->channels));
-						last_audio_index = i;
-
 						if (current_decoded < 0) {
 							godot::print_error(current_decoded);
 							break;
 						}
+
+						decoded_frames += current_decoded;
+						data->pcm.resize(data->pcm.size() + (current_decoded * data->channels));
+						last_audio_index = i;
 					}
 
 					if (decoded_frames > 0) {
@@ -276,6 +331,8 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 							godot::print_error("Failed to mix audio frames (", decoded_frames, " decoded)");
 						}
 					}
+
+					data->pcm.resize(original_pcm_size);
 					break;
 				}
 				default:
@@ -375,4 +432,28 @@ int32_t VideoStreamPlaybackWebM::get_video_track() const {
 
 bool VideoStreamPlaybackWebM::has_video_track() const {
 	return get_video_track_count() > 0;
+}
+
+VideoStreamPlaybackWebM::~VideoStreamPlaybackWebM() {
+	godot::print_line("FREEING VIDEO STREAM PLAYBACK WEBM!!!");
+
+	for (size_t i = 0; i < file_info.tracks.size(); i++) {
+		GodotWebMTrack webm_track = file_info.tracks.getv(i);
+		if (webm_track.data != NULL) {
+			switch (webm_track.codec) {
+				case GDWEBM_SUPPORTED_CODEC_V_AV1: {
+					GodotWebMAV1Data *av1_data = (GodotWebMAV1Data *)webm_track.data;
+					dav1d_close(&av1_data->context);
+				} break;
+				case GDWEBM_SUPPORTED_CODEC_A_OPUS: {
+					GodotWebMOpusData *opus_data = (GodotWebMOpusData *)webm_track.data;
+					opus_decoder_destroy(opus_data->decoder);
+				} break;
+				default:
+					break;
+			}
+
+			std::free(webm_track.data);
+		}
+	}
 }

@@ -11,8 +11,10 @@ class VideoStreamWebM : public VideoStream {
 	GDCLASS(VideoStreamWebM, VideoStream);
 
 protected:
-	static void _bind_methods() {};
+	static void _bind_methods();
 
 public:
 	virtual Ref<VideoStreamPlayback> _instantiate_playback() override;
+
+	static Ref<VideoStreamWebM> load_from_file(const String& path);
 };

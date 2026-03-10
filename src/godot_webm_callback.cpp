@@ -91,9 +91,7 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 				track.data = (void *)data;
 
 				if (error != OPUS_OK) {
-					godot::Array values;
-					values.push_back(error);
-					godot::print_error("Error creating Opus Decoder: %d", values);
+					godot::print_error("Error creating Opus Decoder: ", error);
 				}
 			} else if (codec_id == "A_VORBIS") {
 				codec = GDWEBM_SUPPORTED_CODEC_A_VORBIS;
@@ -151,15 +149,19 @@ webm::Status GodotWebMCallback::OnFrame(const FrameMetadata &metadata, Reader *r
 		frame_duration = file_info->tracks[current_track].entry.default_duration.value() / file_info->timecodeScale;
 	}
 
-	GodotWebMFrame frame;
-	frame.timecode = current_timecode_base + current_timecode + (current_frame_index * frame_duration);
-	current_frame_index++;
-	frame.data.resize(metadata.size);
-	uint8_t *buf = frame.data.ptrw();
-	std::uint64_t total_read = 0;
+	godot::Vector<GodotWebMFrame> *frames = &file_info->tracks[current_track].frames;
+	frames->resize(frames->size() + 1);
 
+	GodotWebMFrame *frame = frames->ptrw() + frames->size() - 1;
+	memset(frame, 0, sizeof(GodotWebMFrame));
+	frame->timecode = current_timecode_base + current_timecode + (current_frame_index * frame_duration);
+	frame->data.resize(metadata.size);
+	current_frame_index++;
+
+	uint8_t *buf = frame->data.ptrw();
+	uint64_t total_read = 0;
 	while (total_read < metadata.size) {
-		std::uint64_t read = 0;
+		uint64_t read = 0;
 		webm::Status read_status = reader->Read(*bytes_remaining, buf + total_read, &read);
 		*bytes_remaining -= read;
 		total_read += read;
@@ -172,9 +174,6 @@ webm::Status GodotWebMCallback::OnFrame(const FrameMetadata &metadata, Reader *r
 		}
 	}
 
-	godot::Vector<GodotWebMFrame> *frames = &file_info->tracks[current_track].frames;
-	frames->resize(frames->size() + 1);
-	frames->ptrw()[frames->size() - 1] = frame;
 	return webm::Status(webm::Status::kOkCompleted);
 }
 

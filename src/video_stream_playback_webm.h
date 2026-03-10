@@ -60,4 +60,6 @@ public:
 	void _update(double p_delta) override;
 	int32_t _get_channels() const override;
 	int32_t _get_mix_rate() const override;
+
+	~VideoStreamPlaybackWebM();
 };

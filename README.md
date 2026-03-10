@@ -14,27 +14,35 @@ The goal of `gdwebm` is to provide support for WebM files and all supported code
 
 To use this extension:
 1. Clone this repository (`git clone https://github.com/cherrythecool/gdwebm.git`).
-2. Build the extension using the provided script for your OS (`./build_mac.sh` for macOS for example) (see GDExtension documentation for more platform-specifics, and use `cmake` for building thirdparty libraries if you're doing it manually).
+2. Build the extension using the provided script for your OS (`./build_mac.sh` for macOS for example) (see GDExtension documentation for more platform-specifics (if you want to build by hand, each thirdparty library may require different commands or tools).
 4. Put a `.webm` in your project and use the extension.
+
+## Build Requirements
+
+* Anything the [Godot Documentation requires](https://docs.godotengine.org/en/latest/engine_details/development/compiling/index.html#building-for-target-platforms) for building the engine is required for building this GDExtension
+* `cmake` (for some thirdparty libraries used, ex: libwebm)
+* `meson` (for some thirdparty libraries used, ex: dav1d)
 
 ## Supported Features
 
 Currently, the extension supports parsing the WebM container and decoding the following codecs:
 
+### Video:
+* AV1
+
 ### Audio:
-* Opus (`A_OPUS`)
+* Opus
 
 ## Future Features
 
-We plan to implement full support for all standard WebM codecs:
+We plan to implement full support for all other standard WebM codecs:
 
 ### Video:
-* [ ] VP8 (`V_VP8`)
-* [ ] VP9 (`V_VP9`)
-* [ ] AV1 (`V_AV1`)
+* VP8
+* VP9
 
 ### Audio:
-* [ ] Vorbis (`A_VORBIS`)
+* Vorbis
 
 ## Credits
 

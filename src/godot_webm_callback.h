@@ -40,7 +40,6 @@ struct GodotWebMAV1Data {
 	Dav1dPicture picture;
 };
 
-// TODO: switch to RefCounted class to manage the memory of `data` better
 struct GodotWebMTrack {
 	GodotWebMSupportedCodec codec = GDWEBM_UNSUPPORTED_CODEC;
 	webm::TrackEntry entry;
