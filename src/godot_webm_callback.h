@@ -1,5 +1,7 @@
 #pragma once
 
+#include "godot_cpp/classes/ref.hpp"
+#include "godot_cpp/classes/thread.hpp"
 #include "godot_cpp/templates/vector.hpp"
 #include "godot_cpp/templates/vmap.hpp"
 #include "godot_cpp/variant/packed_byte_array.hpp"
@@ -38,6 +40,8 @@ struct GodotWebMAV1Data {
 	Dav1dContext *context;
 	Dav1dData data;
 	Dav1dPicture picture;
+
+	godot::Ref<godot::Thread> decoder_thread;
 };
 
 struct GodotWebMTrack {
@@ -51,6 +55,7 @@ struct GodotWebMFileInfo {
 	uint64_t durationTimecode = 0;
 	uint64_t timecodeScale = 1000000;
 
+	// TODO: Replace with godot::HashMap
 	godot::VMap<int64_t, GodotWebMTrack> tracks;
 
 public:

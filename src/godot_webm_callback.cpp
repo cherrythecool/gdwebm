@@ -3,7 +3,9 @@
 #include "dav1d/dav1d.h"
 #include "godot_cpp/core/math.hpp"
 #include "godot_cpp/core/print_string.hpp"
+#include "godot_cpp/variant/callable_method_pointer.hpp"
 #include "godot_cpp/variant/packed_float32_array.hpp"
+#include "opus_defines.h"
 #include "webm/status.h"
 
 #include "opus.h"
@@ -35,9 +37,9 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 
 				Dav1dSettings settings;
 				dav1d_default_settings(&settings);
-				settings.n_threads = 1;
+				// settings.n_threads = 1;
 				settings.max_frame_delay = 1;
-
+				
 				int result = dav1d_open(&data->context, &settings);
 				if (result < 0) {
 					godot::print_error("Failed to open dav1d context with default settings!");
@@ -62,7 +64,9 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 					dav1d_picture_unref(&dummy);
 				}
 
-				track.data = (void *)data;
+				// data->decoder_thread.instantiate();
+
+				track.data = (void*)data;
 			} else if (codec_id == "V_VP9") {
 				codec = GDWEBM_SUPPORTED_CODEC_V_VP9;
 			} else if (codec_id == "V_VP8") {
@@ -84,15 +88,19 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 
 				int error;
 				data->decoder = opus_decoder_create(
-						data->sample_rate,
-						data->channels,
-						&error);
-
-				track.data = (void *)data;
+					data->sample_rate,
+					data->channels,
+					&error
+				);
 
 				if (error != OPUS_OK) {
 					godot::print_error("Error creating Opus Decoder: ", error);
+				} else {
+					// TODO: make this an option!!!
+					//opus_decoder_ctl(data->decoder, OPUS_SET_PHASE_INVERSION_DISABLED(1));
 				}
+
+				track.data = (void*)data;
 			} else if (codec_id == "A_VORBIS") {
 				codec = GDWEBM_SUPPORTED_CODEC_A_VORBIS;
 			}
@@ -153,7 +161,7 @@ webm::Status GodotWebMCallback::OnFrame(const FrameMetadata &metadata, Reader *r
 	frames->resize(frames->size() + 1);
 
 	GodotWebMFrame *frame = frames->ptrw() + frames->size() - 1;
-	memset(frame, 0, sizeof(GodotWebMFrame));
+	memset((void*)frame, 0, sizeof(GodotWebMFrame));
 	frame->timecode = current_timecode_base + current_timecode + (current_frame_index * frame_duration);
 	frame->data.resize(metadata.size);
 	current_frame_index++;

@@ -10,6 +10,7 @@
 #include <godot_cpp/classes/video_stream_playback.hpp>
 #include <godot_cpp/classes/wrapped.hpp>
 
+#include "godot_cpp/classes/thread.hpp"
 #include "godot_webm_callback.h"
 
 using namespace godot;

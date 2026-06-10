@@ -288,13 +288,11 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 		GodotWebMTrack current_track = file_info.tracks[get_audio_track()];
 		webm::Audio current_audio = current_track.entry.audio.value();
 
-		bool found = false;
 		int64_t frame = last_audio_index;
 		for (int64_t i = last_audio_index + 1; i < current_track.frames.size(); i++) {
 			GodotWebMFrame current_frame = current_track.frames[i];
-			if (current_time >= file_info.getScaledSeconds(current_frame.timecode)) {
+			if (file_info.getScaledSeconds(current_frame.timecode) - current_time <= 0.001) {
 				frame = i;
-				found = true;
 			} else {
 				break;
 			}
@@ -304,35 +302,35 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 			switch (current_track.codec) {
 				case GDWEBM_SUPPORTED_CODEC_A_OPUS: {
 					GodotWebMOpusData *data = (GodotWebMOpusData *)current_track.data;
-					size_t original_pcm_size = data->pcm.size();
 
 					OpusDecoder *decoder = data->decoder;
-					int decoded_frames = 0;
-					for (int64_t i = (last_audio_index == -1 ? 0 : last_audio_index + 1); i <= frame; i++) {
+					for (int64_t i = last_audio_index + 1; i <= frame; i++) {
 						int current_decoded = opus_decode_float(decoder,
-								current_track.frames[i].data.ptr(),
-								current_track.frames[i].data.size(),
-								data->pcm.ptrw() + (decoded_frames * data->channels),
-								(data->pcm.size() / data->channels) - decoded_frames,
-								0);
+							current_track.frames[i].data.ptr(),
+							current_track.frames[i].data.size(),
+							data->pcm.ptrw(),
+							data->pcm.size() / data->channels,
+							0
+						);
+						
 						if (current_decoded < 0) {
 							godot::print_error(current_decoded);
 							break;
 						}
-
-						decoded_frames += current_decoded;
-						data->pcm.resize(data->pcm.size() + (current_decoded * data->channels));
+						
 						last_audio_index = i;
-					}
-
-					if (decoded_frames > 0) {
-						int mixed = mix_audio(decoded_frames, data->pcm, 0);
-						if (mixed == -1) {
-							godot::print_error("Failed to mix audio frames (", decoded_frames, " decoded)");
+						if (current_decoded > 0) {
+							int mixed = mix_audio(
+								current_decoded,
+								data->pcm,
+								0
+							);
+							if (mixed == -1) {
+								godot::print_error("Failed to mix audio frames (", current_decoded, " decoded)");
+							}
 						}
 					}
 
-					data->pcm.resize(original_pcm_size);
 					break;
 				}
 				default:
