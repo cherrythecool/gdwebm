@@ -11,6 +11,8 @@ enum GodotWebMStatus {
 class GodotWebMReader : public webm::Reader {
 private:
 	godot::Ref<godot::FileAccess> file;
+	uint64_t file_position = 0;
+	uint64_t file_length = 0;
 
 public:
 	GodotWebMReader(godot::Ref<godot::FileAccess> p_file);

@@ -11,6 +11,7 @@
 #include "godot_cpp/classes/texture2d.hpp"
 #include "godot_cpp/classes/video_stream_playback.hpp"
 #include "godot_cpp/core/print_string.hpp"
+#include "godot_cpp/variant/packed_byte_array.hpp"
 #include "godot_cpp/variant/packed_float32_array.hpp"
 #include "godot_cpp/variant/string.hpp"
 #include "godot_webm_callback.h"
@@ -32,9 +33,10 @@ Error VideoStreamPlaybackWebM::load_from_file(Ref<FileAccess> p_file) {
 		return ERR_FILE_CORRUPT;
 	}
 
+	current_file = p_file;
 	file_info = { 0 };
 
-	GodotWebMReader reader(p_file);
+	GodotWebMReader reader(current_file);
 	GodotWebMCallback callback(&file_info);
 	webm::WebmParser parser;
 	webm::Status status = parser.Feed(&callback, &reader);
@@ -227,25 +229,35 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 
 		switch (current_track.codec) {
 			case GDWEBM_SUPPORTED_CODEC_V_AV1: {
-				GodotWebMAV1Data *data = (GodotWebMAV1Data *)current_track.data;
+				GodotWebMAV1Data* data = (GodotWebMAV1Data*)current_track.data;
 				for (int64_t i = (last_sent_index == -1 ? 0 : last_sent_index + 1); i <= frame; i++) {
-					size_t frame_size = current_track.frames[i].data.size();
-					uint8_t *frame_data = dav1d_data_create(&data->data, frame_size);
+					GodotWebMFrame webm_frame = current_track.frames[i];
+					size_t frame_size = webm_frame.data_size;
+					uint8_t* frame_data = dav1d_data_create(&data->data, frame_size);
 					if (!frame_data) {
 						godot::print_error("Failed to create new Dav1dData for current frame!");
 						break;
 					}
 
-					memcpy((void *)frame_data, current_track.frames[i].data.ptr(), frame_size);
+					current_file->seek(webm_frame.data_index);
+					uint64_t read_data = current_file->get_buffer(frame_data, webm_frame.data_size);
+
+					if (read_data != webm_frame.data_size) {
+						godot::print_error("Failed to read all data for current frame from file! Only read", read_data, "when was expecting", webm_frame.data_size);
+						break;
+					}
+
 					data->data.m.offset = i;
 					data->data.m.timestamp = current_track.frames[i].timecode;
 
 					while (true) {
 						int data_result = dav1d_send_data(data->context, &data->data);
+
 						if (data_result == 0) {
 							break;
 						} else if (data_result == DAV1D_ERR(EAGAIN)) {
 							Dav1dPicture drained = {};
+
 							int drain_result = dav1d_get_picture(data->context, &drained);
 							if (drain_result == 0) {
 								dav1d_picture_unref(&drained);
@@ -263,7 +275,7 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 					last_sent_index = i;
 				}
 
-				if (last_video_index != (int64_t)frame) {
+				{
 					Dav1dPicture picture = {};
 					int picture_result = dav1d_get_picture(data->context, &picture);
 					if (picture_result == 0) {
@@ -301,13 +313,18 @@ void VideoStreamPlaybackWebM::_update(double p_delta) {
 		if (last_audio_index != frame) {
 			switch (current_track.codec) {
 				case GDWEBM_SUPPORTED_CODEC_A_OPUS: {
-					GodotWebMOpusData *data = (GodotWebMOpusData *)current_track.data;
+					GodotWebMOpusData* data = (GodotWebMOpusData*)current_track.data;
+					OpusDecoder* decoder = data->decoder;
 
-					OpusDecoder *decoder = data->decoder;
 					for (int64_t i = last_audio_index + 1; i <= frame; i++) {
+						GodotWebMFrame webm_frame = current_track.frames[i];
+
+						current_file->seek(webm_frame.data_index);
+						godot::PackedByteArray opus_frames = current_file->get_buffer(webm_frame.data_size);
+
 						int current_decoded = opus_decode_float(decoder,
-							current_track.frames[i].data.ptr(),
-							current_track.frames[i].data.size(),
+							opus_frames.ptr(),
+							opus_frames.size(),
 							data->pcm.ptrw(),
 							data->pcm.size() / data->channels,
 							0

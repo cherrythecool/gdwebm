@@ -3,8 +3,11 @@
 #include <cstdint>
 
 GodotWebMReader::GodotWebMReader(godot::Ref<godot::FileAccess> p_file) {
+	file_position = 0;
+
 	if (!p_file.is_null() && p_file.is_valid()) {
 		file = p_file;
+		file_length = file->get_length();
 	}
 }
 
@@ -26,7 +29,7 @@ webm::Status GodotWebMReader::Read(std::size_t num_to_read, std::uint8_t *buffer
 		return webm::Status(webm::Status::kEndOfFile);
 	}
 
-	if (file->get_position() >= file->get_length() - 1 && num_to_read > 0) {
+	if (file_position + 1 >= file_length && num_to_read > 0) {
 		if (num_actually_read) {
 			*num_actually_read = 0;
 		}
@@ -36,10 +39,11 @@ webm::Status GodotWebMReader::Read(std::size_t num_to_read, std::uint8_t *buffer
 
 	if (num_actually_read) {
 		*num_actually_read = file->get_buffer(buffer, num_to_read);
-	}
+		file_position += *num_actually_read;
 
-	if (num_actually_read && *num_actually_read != num_to_read) {
-		return webm::Status(webm::Status::kOkPartial);
+		if (*num_actually_read != num_to_read) {
+			return webm::Status(webm::Status::kOkPartial);
+		}
 	}
 
 	return webm::Status(webm::Status::kOkCompleted);
@@ -55,7 +59,7 @@ webm::Status GodotWebMReader::Skip(std::uint64_t num_to_skip,
 		return webm::Status(webm::Status::kEndOfFile);
 	}
 
-	if (file->get_position() >= file->get_length() - 1) {
+	if (file_position + 1 >= file_length) {
 		if (num_actually_skipped) {
 			*num_actually_skipped = 0;
 		}
@@ -64,8 +68,9 @@ webm::Status GodotWebMReader::Skip(std::uint64_t num_to_skip,
 	}
 
 	if (num_actually_skipped) {
-		uint64_t advance = godot::Math::min(num_to_skip, file->get_length() - file->get_position());
-		file->seek(file->get_position() + advance);
+		uint64_t advance = godot::Math::min(num_to_skip, file_length - file_position);
+		file->seek(file_position + advance);
+		file_position += advance;
 		*num_actually_skipped = advance;
 
 		if (advance != num_to_skip) {
@@ -77,9 +82,5 @@ webm::Status GodotWebMReader::Skip(std::uint64_t num_to_skip,
 }
 
 std::uint64_t GodotWebMReader::Position() const {
-	if (!file.is_valid()) {
-		return 0;
-	}
-
-	return file->get_position();
+	return file_position;
 }

@@ -27,6 +27,7 @@ private:
 	double current_time = 0.0;
 	Ref<Image> current_image;
 	Ref<ImageTexture> current_texture;
+	Ref<FileAccess> current_file;
 
 	int64_t last_audio_index = -1;
 	int64_t last_video_index = -1;

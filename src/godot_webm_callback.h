@@ -25,7 +25,8 @@ enum GodotWebMSupportedCodec {
 };
 
 struct GodotWebMFrame {
-	godot::PackedByteArray data;
+	uint64_t data_index;
+	uint64_t data_size;
 	uint64_t timecode;
 };
 

@@ -116,6 +116,7 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 Status GodotWebMCallback::OnClusterBegin(const ElementMetadata &metadata,
 		const Cluster &cluster, Action *action) {
 	*action = Action::kRead;
+
 	if (cluster.timecode.is_present()) {
 		current_timecode_base = cluster.timecode.value();
 	}
@@ -137,7 +138,7 @@ webm::Status GodotWebMCallback::OnInfo(const webm::ElementMetadata &metadata, co
 
 webm::Status GodotWebMCallback::OnFrame(const FrameMetadata &metadata, Reader *reader, std::uint64_t *bytes_remaining) {
 	if (metadata.parent_element.id != webm::Id::kBlock && metadata.parent_element.id != webm::Id::kSimpleBlock) {
-		std::uint64_t skipped;
+		uint64_t skipped;
 		webm::Status skip_status = reader->Skip(*bytes_remaining, &skipped);
 		*bytes_remaining -= skipped;
 		while (!skip_status.completed_ok() && *bytes_remaining > 0) {
@@ -157,29 +158,26 @@ webm::Status GodotWebMCallback::OnFrame(const FrameMetadata &metadata, Reader *r
 		frame_duration = file_info->tracks[current_track].entry.default_duration.value() / file_info->timecodeScale;
 	}
 
-	godot::Vector<GodotWebMFrame> *frames = &file_info->tracks[current_track].frames;
+	godot::Vector<GodotWebMFrame>* frames = &file_info->tracks[current_track].frames;
 	frames->resize(frames->size() + 1);
+	frames->set(frames->size() - 1, (GodotWebMFrame) {
+		reader->Position(),
+		metadata.size,
+		current_timecode_base + current_timecode + (current_frame_index * frame_duration),
+	});
 
-	GodotWebMFrame *frame = frames->ptrw() + frames->size() - 1;
-	memset((void*)frame, 0, sizeof(GodotWebMFrame));
-	frame->timecode = current_timecode_base + current_timecode + (current_frame_index * frame_duration);
-	frame->data.resize(metadata.size);
 	current_frame_index++;
+	
+	uint64_t skipped;
+	webm::Status skip_status = reader->Skip(*bytes_remaining, &skipped);
+	*bytes_remaining -= skipped;
+	while (!skip_status.completed_ok() && *bytes_remaining > 0) {
+		skip_status = reader->Skip(*bytes_remaining, &skipped);
+		*bytes_remaining -= skipped;
+	}
 
-	uint8_t *buf = frame->data.ptrw();
-	uint64_t total_read = 0;
-	while (total_read < metadata.size) {
-		uint64_t read = 0;
-		webm::Status read_status = reader->Read(*bytes_remaining, buf + total_read, &read);
-		*bytes_remaining -= read;
-		total_read += read;
-		if (read_status.completed_ok()) {
-			break;
-		}
-
-		if (*bytes_remaining == 0) {
-			break;
-		}
+	if (!skip_status.completed_ok()) {
+		return skip_status;
 	}
 
 	return webm::Status(webm::Status::kOkCompleted);
