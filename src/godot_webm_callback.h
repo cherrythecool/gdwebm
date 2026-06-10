@@ -4,6 +4,7 @@
 #include "godot_cpp/classes/thread.hpp"
 #include "godot_cpp/templates/vector.hpp"
 #include "godot_cpp/templates/vmap.hpp"
+#include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/variant/packed_byte_array.hpp"
 #include "godot_cpp/variant/packed_float32_array.hpp"
 
@@ -49,7 +50,7 @@ struct GodotWebMTrack {
 	GodotWebMSupportedCodec codec = GDWEBM_UNSUPPORTED_CODEC;
 	webm::TrackEntry entry;
 	godot::Vector<GodotWebMFrame> frames;
-	void *data;
+	void* data;
 };
 
 struct GodotWebMFileInfo {
@@ -57,7 +58,7 @@ struct GodotWebMFileInfo {
 	uint64_t timecodeScale = 1000000;
 
 	// TODO: Replace with godot::HashMap
-	godot::VMap<int64_t, GodotWebMTrack> tracks;
+	godot::HashMap<int64_t, GodotWebMTrack> tracks;
 
 public:
 	double getScaledSeconds(const uint64_t timecode) const {

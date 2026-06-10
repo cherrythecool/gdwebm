@@ -380,8 +380,8 @@ int32_t VideoStreamPlaybackWebM::_get_mix_rate() const {
 
 uint64_t VideoStreamPlaybackWebM::get_audio_track_count() const {
 	uint64_t count = 0;
-	for (uint64_t i = 0; i < file_info.tracks.size(); i++) {
-		if (file_info.tracks.get_array()[i].value.entry.audio.is_present()) {
+	for (godot::KeyValue<int64_t, GodotWebMTrack> track : file_info.tracks) {
+		if (track.value.entry.audio.is_present()) {
 			count++;
 		}
 	}
@@ -392,15 +392,14 @@ uint64_t VideoStreamPlaybackWebM::get_audio_track_count() const {
 int32_t VideoStreamPlaybackWebM::get_audio_track() const {
 	int32_t returned_key = -1;
 	int32_t counter = 0;
-	for (uint64_t i = 0; i < file_info.tracks.size(); i++) {
-		bool has_audio = file_info.tracks.get_array()[i].value.entry.audio.is_present();
+	for (godot::KeyValue<int64_t, GodotWebMTrack> track : file_info.tracks) {
+		bool has_audio = track.value.entry.audio.is_present();
 		if (!has_audio) {
 			continue;
 		}
 
 		if (counter == audio_track) {
-			godot::VMap<int64_t, GodotWebMTrack>::Pair pair = file_info.tracks.get_array()[i];
-			returned_key = pair.key;
+			returned_key = track.key;
 			break;
 		}
 
@@ -416,8 +415,8 @@ bool VideoStreamPlaybackWebM::has_audio_track() const {
 
 uint64_t VideoStreamPlaybackWebM::get_video_track_count() const {
 	uint64_t count = 0;
-	for (uint64_t i = 0; i < file_info.tracks.size(); i++) {
-		if (file_info.tracks.get_array()[i].value.entry.video.is_present()) {
+	for (godot::KeyValue<int64_t, GodotWebMTrack> track : file_info.tracks) {
+		if (track.value.entry.video.is_present()) {
 			count++;
 		}
 	}
@@ -426,23 +425,23 @@ uint64_t VideoStreamPlaybackWebM::get_video_track_count() const {
 }
 
 int32_t VideoStreamPlaybackWebM::get_video_track() const {
-	int32_t number = 0;
-	for (uint64_t i = 0; i < file_info.tracks.size(); i++) {
-		bool has_video = file_info.tracks.get_array()[i].value.entry.video.is_present();
+	int32_t returned_key = -1;
+	int32_t counter = 0;
+	for (godot::KeyValue<int64_t, GodotWebMTrack> track : file_info.tracks) {
+		bool has_video = track.value.entry.video.is_present();
 		if (!has_video) {
 			continue;
 		}
 
-		if (number == video_track) {
-			godot::VMap<int64_t, GodotWebMTrack>::Pair pair = file_info.tracks.get_array()[i];
-			number = pair.key;
+		if (counter == video_track) {
+			returned_key = track.key;
 			break;
 		}
 
-		number++;
+		counter++;
 	}
 
-	return number;
+	return returned_key;
 }
 
 bool VideoStreamPlaybackWebM::has_video_track() const {
@@ -450,25 +449,27 @@ bool VideoStreamPlaybackWebM::has_video_track() const {
 }
 
 VideoStreamPlaybackWebM::~VideoStreamPlaybackWebM() {
-	godot::print_line("FREEING VIDEO STREAM PLAYBACK WEBM!!!");
-
 	for (size_t i = 0; i < file_info.tracks.size(); i++) {
-		GodotWebMTrack webm_track = file_info.tracks.getv(i);
+		GodotWebMTrack webm_track = file_info.tracks[i];
+
 		if (webm_track.data != NULL) {
 			switch (webm_track.codec) {
 				case GDWEBM_SUPPORTED_CODEC_V_AV1: {
 					GodotWebMAV1Data *av1_data = (GodotWebMAV1Data *)webm_track.data;
 					dav1d_close(&av1_data->context);
+					delete av1_data;
 				} break;
 				case GDWEBM_SUPPORTED_CODEC_A_OPUS: {
 					GodotWebMOpusData *opus_data = (GodotWebMOpusData *)webm_track.data;
 					opus_decoder_destroy(opus_data->decoder);
+					delete opus_data;
 				} break;
 				default:
 					break;
 			}
 
-			std::free(webm_track.data);
 		}
 	}
+
+	file_info.tracks.clear();
 }

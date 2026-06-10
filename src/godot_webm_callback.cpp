@@ -46,6 +46,7 @@ Status GodotWebMCallback::OnTrackEntry(const ElementMetadata &metadata,
 					return webm::Status(webm::Status::kNotEnoughMemory);
 				}
 
+				// todo: maybe we don't need this
 				if (track_entry.codec_private.is_present()) {
 					std::vector<std::uint8_t> codec_private = track_entry.codec_private.value();
 					Dav1dData seq_data = {};
